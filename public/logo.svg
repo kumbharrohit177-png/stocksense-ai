@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 64" fill="none">
+  <rect width="48" height="48" x="8" y="8" rx="12" fill="#0F172A" stroke="#334155" stroke-width="1.5"/>
+  <path d="M16 42L25 32L31 38L44 20" stroke="#6366F1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M36 20H44V28" stroke="#6366F1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="44" cy="20" r="3" fill="#38BDF8"/>
+  <circle cx="25" cy="32" r="2" fill="#10B981"/>
+  <circle cx="31" cy="38" r="2" fill="#10B981"/>
+  <!-- AI sparkle mark -->
+  <path d="M40 38L41 35L44 34L41 33L40 30L39 33L36 34L39 35L40 38Z" fill="#38BDF8"/>
+  <text x="68" y="36" fill="#F8FAFC" font-family="Plus Jakarta Sans, Inter, sans-serif" font-weight="800" font-size="22" letter-spacing="-0.02em">Stock<tspan fill="#6366F1">AI</tspan></text>
+  <text x="68" y="48" fill="#64748B" font-family="Plus Jakarta Sans, Inter, sans-serif" font-weight="600" font-size="9" letter-spacing="0.12em">PREDICTIVE INTELLIGENCE</text>
+</svg>

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
-import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
 import CommandPalette from './components/CommandPalette';
 import LandingPage from './pages/LandingPage';
@@ -15,7 +14,7 @@ export default function App() {
     if (['landing', 'dashboard', 'predictions', 'models', 'methodology'].includes(hash)) {
       return hash;
     }
-    return 'landing';
+    return 'dashboard';
   });
 
   const [activeStock, setActiveStock] = useState('RELIANCE');
@@ -39,26 +38,20 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const hasSidebar = activePage !== 'landing';
-
   return (
-    <div className="min-h-screen bg-background text-on-surface flex flex-col selection:bg-primary-container selection:text-on-primary-container">
-      {/* 1. Global Navigation Header */}
+    <div className="min-h-screen bg-[#0d1117] text-gray-100 flex flex-col font-sans selection:bg-primary/30 selection:text-white">
+      {/* Single Top Navigation Header */}
       <Header
         activePage={activePage}
         setActivePage={setActivePage}
-        onOpenSearch={() => setIsSearchOpen(true)}
         activeStock={activeStock}
         onSelectStock={setActiveStock}
+        onOpenSearch={() => setIsSearchOpen(true)}
       />
 
-      {/* 2. Workspace Layout with Optional Sidebar */}
-      <div className="flex-1 flex w-full pt-[92px]">
-        {hasSidebar && (
-          <Sidebar activePage={activePage} setActivePage={setActivePage} />
-        )}
-
-        <main className={`flex-1 w-full bg-background ${hasSidebar ? 'md:pl-64' : ''} flex flex-col min-h-[calc(100vh-92px)]`}>
+      {/* Main Content Area - Clean Full Width */}
+      <div className="flex-1 flex flex-col w-full pt-16">
+        <main className="flex-1 w-full bg-[#0d1117] flex flex-col min-h-[calc(100vh-64px)]">
           {activePage === 'landing' && (
             <LandingPage
               onNavigate={setActivePage}
@@ -95,7 +88,7 @@ export default function App() {
         </main>
       </div>
 
-      {/* 3. Global Command Palette (⌘K) */}
+      {/* Global Command Palette (⌘K / Ctrl+K) */}
       <CommandPalette
         isOpen={isSearchOpen}
         onClose={setIsSearchOpen}

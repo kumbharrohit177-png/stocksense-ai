@@ -1,180 +1,133 @@
 import React, { useState } from 'react';
-import { LIVE_TICKERS } from '../data/mockData';
+import { AVAILABLE_STOCKS } from '../data/mockData';
 
-export default function Header({ activePage, setActivePage, onOpenSearch, activeStock, onSelectStock }) {
-  const [isDarkMode, setIsDarkMode] = useState(true);
+export default function Header({ activePage, setActivePage, activeStock, onSelectStock }) {
+  const [isStockDropdownOpen, setIsStockDropdownOpen] = useState(false);
 
   const navItems = [
-    { id: 'landing', label: 'Landing' },
-    { id: 'dashboard', label: 'Dashboard' },
-    { id: 'predictions', label: 'Predictions' },
-    { id: 'models', label: 'Models' },
-    { id: 'methodology', label: 'Methodology' },
+    { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+    { id: 'predictions', label: 'Predictions', icon: 'trending_up' },
+    { id: 'models', label: 'Model Comparison', icon: 'compare_arrows' },
+    { id: 'methodology', label: 'Methodology', icon: 'school' },
   ];
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-surface-container-lowest/90 backdrop-blur-xl border-b border-outline-variant/30 shadow-[0_1px_8px_rgba(0,0,0,0.5)]">
-      {/* 1. Top Real-Time Market Ticker Ribbon */}
-      <div className="h-7 w-full bg-surface-container-lowest px-gutter md:px-gutter-desktop flex items-center justify-between overflow-x-auto overflow-y-hidden border-b border-outline-variant/20 text-label-sm font-label-sm scrollbar-none">
-        <div className="flex items-center gap-space-lg whitespace-nowrap">
-          {LIVE_TICKERS.map((ticker) => (
-            <button
-              key={ticker.name}
-              onClick={() => {
-                if (['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'TATAMOTORS'].includes(ticker.name)) {
-                  onSelectStock && onSelectStock(ticker.name);
-                }
-              }}
-              className="flex items-center gap-space-xs hover:opacity-80 transition-opacity cursor-pointer text-left"
-            >
-              <span className={`w-1.5 h-1.5 rounded-full ${ticker.isUp ? 'bg-tertiary' : 'bg-error'} animate-pulse`}></span>
-              <span className="text-on-surface-variant uppercase">{ticker.name}</span>
-              <span className="font-metric-val text-metric-val text-on-surface tabular-nums">{ticker.price}</span>
-              <span className={`${ticker.isUp ? 'text-tertiary' : 'text-error'} font-metric-val text-metric-val tabular-nums`}>
-                {ticker.change}
-              </span>
-            </button>
-          ))}
-        </div>
-        <div className="hidden md:flex items-center gap-space-sm text-on-surface-variant pl-4">
-          <span className="text-label-sm font-label-sm uppercase tracking-wider">Tick Latency:</span>
-          <span className="text-tertiary font-metric-val text-metric-val tabular-nums">12ms</span>
-        </div>
-      </div>
-
-      {/* 2. Main Navigation Bar */}
-      <div className="h-16 w-full px-gutter md:px-gutter-desktop flex items-center justify-between gap-space-md">
-        {/* Logo & Platform Name */}
-        <div className="flex items-center gap-space-lg">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-[#0d1117]/95 backdrop-blur-md border-b border-[#21262d] shadow-sm">
+      <div className="max-w-[1600px] mx-auto h-16 px-4 md:px-8 flex items-center justify-between gap-4">
+        
+        {/* Brand Logo & Subtitle */}
+        <div className="flex items-center gap-6">
           <button 
-            onClick={() => setActivePage('landing')}
-            className="flex items-center gap-space-sm text-left focus:outline-none group"
+            onClick={() => setActivePage('dashboard')}
+            className="flex items-center gap-3 text-left focus:outline-none group cursor-pointer"
           >
-            <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center p-1 border border-outline-variant/40 group-hover:border-primary/60 transition-colors">
-              <svg viewBox="0 0 48 48" fill="none" className="w-full h-full">
-                <path d="M8 32L17 22L23 28L36 10" stroke="#6366F1" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M28 10H36V18" stroke="#6366F1" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                <circle cx="36" cy="10" r="3" fill="#38BDF8"/>
-                <circle cx="17" cy="22" r="2" fill="#10B981"/>
-                <circle cx="23" cy="28" r="2" fill="#10B981"/>
+            <div className="w-9 h-9 rounded-lg bg-[#161b22] flex items-center justify-center border border-[#30363d] group-hover:border-primary/60 transition-colors shadow-sm">
+              <svg viewBox="0 0 32 32" fill="none" className="w-5 h-5">
+                <path d="M4 22L11 14L17 19L28 7" stroke="#38BDF8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M22 7H28V13" stroke="#38BDF8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="28" cy="7" r="2.5" fill="#6366F1"/>
+                <circle cx="11" cy="14" r="2" fill="#10B981"/>
+                <circle cx="17" cy="19" r="2" fill="#10B981"/>
               </svg>
             </div>
             <div className="flex flex-col">
-              <span className="font-headline-sm text-headline-sm font-bold text-on-surface tracking-tight leading-none">
-                Stock<span className="text-primary">AI</span>
+              <span className="text-base font-bold text-white tracking-tight leading-none group-hover:text-primary transition-colors">
+                StockSense <span className="text-primary font-extrabold">AI</span>
               </span>
-              <span className="text-[9px] uppercase tracking-widest text-primary font-label-sm">
-                Inference Engine
+              <span className="text-[11px] text-gray-400 font-medium tracking-normal mt-0.5">
+                AI-Based Stock Market Trend Prediction
               </span>
             </div>
           </button>
 
-          {/* Nav Links */}
-          <nav className="hidden lg:flex items-center gap-space-xs">
+          {/* Desktop Navigation Links */}
+          <nav className="hidden md:flex items-center gap-1.5 ml-4 pl-4 border-l border-[#21262d]">
             {navItems.map((item) => {
               const isActive = activePage === item.id;
               return (
                 <button
                   key={item.id}
                   onClick={() => setActivePage(item.id)}
-                  aria-current={isActive ? 'page' : undefined}
-                  className={`px-space-md py-1.5 rounded-lg transition-all font-label-md text-label-md cursor-pointer ${
+                  className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer flex items-center gap-2 ${
                     isActive
-                      ? 'bg-surface-container-high text-primary font-bold shadow-sm shadow-primary/20'
-                      : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
+                      ? 'bg-[#1f2937] text-white font-semibold shadow-sm border border-[#374151]'
+                      : 'text-gray-400 hover:bg-[#161b22] hover:text-gray-200'
                   }`}
                 >
-                  {item.label}
+                  <span className="material-symbols-outlined text-[17px] opacity-80">{item.icon}</span>
+                  <span>{item.label}</span>
                 </button>
               );
             })}
           </nav>
         </div>
 
-        {/* Global Search Bar */}
-        <div className="flex-1 max-w-md hidden md:flex items-center">
-          <div 
-            onClick={onOpenSearch}
-            className="relative w-full cursor-pointer group"
-          >
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px] group-hover:text-primary transition-colors">
-              search
-            </span>
-            <input
-              type="text"
-              readOnly
-              onClick={onOpenSearch}
-              placeholder="Search ticker (e.g. RELIANCE, TCS, INFY)..."
-              className="w-full pl-9 pr-14 py-1.5 rounded bg-surface-container-low text-on-surface placeholder:text-outline text-body-sm font-body-sm focus:outline-none focus:ring-1 focus:ring-primary border border-outline-variant/40 cursor-pointer"
-            />
-            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 bg-surface-container px-1.5 py-0.5 rounded text-[10px] font-label-sm text-on-surface-variant border border-outline-variant/30">
-              <span>⌘</span>
-              <span>K</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Actions & Status */}
-        <div className="flex items-center gap-space-md">
-          <div className="hidden sm:flex items-center gap-space-xs px-2.5 py-1 rounded bg-surface-container-low border border-tertiary/20 text-label-sm font-label-sm text-tertiary">
-            <span className="w-2 h-2 rounded-full bg-tertiary animate-ping"></span>
-            <span>● NSE LIVE</span>
-          </div>
-
-          <div className="hidden xl:flex items-center gap-space-xs px-2.5 py-1 rounded bg-surface-container-low border border-secondary/20 text-label-sm font-label-sm text-secondary">
-            <span className="material-symbols-outlined text-[14px]">memory</span>
-            <span>TensorEngine v3.4 Active</span>
-          </div>
-
-          <div className="flex items-center gap-space-xs">
-            <button 
-              onClick={onOpenSearch}
-              title="Search"
-              className="w-8 h-8 rounded flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors"
+        {/* Right Section: Stock Selector */}
+        <div className="flex items-center gap-3">
+          
+          {/* Stock Selector Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setIsStockDropdownOpen(!isStockDropdownOpen)}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#161b22] hover:bg-[#1f2937] text-white text-xs font-semibold border border-[#30363d] transition-colors cursor-pointer shadow-sm"
             >
-              <span className="material-symbols-outlined text-[20px]">search</span>
-            </button>
-            <button 
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              title="Toggle Theme"
-              className="w-8 h-8 rounded flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors"
-            >
-              <span className="material-symbols-outlined text-[20px]">
-                {isDarkMode ? 'dark_mode' : 'light_mode'}
+              <span className="text-gray-400">Stock:</span>
+              <span className="text-primary font-bold">{activeStock}</span>
+              <span className="material-symbols-outlined text-[16px] text-gray-400">
+                {isStockDropdownOpen ? 'expand_less' : 'expand_more'}
               </span>
             </button>
-          </div>
 
-          {/* User Profile Avatar */}
-          <div className="flex items-center gap-space-sm pl-space-xs border-l border-outline-variant/30">
-            <div className="flex flex-col text-right hidden sm:flex">
-              <span className="text-label-sm font-label-sm text-on-surface font-semibold">QuantDesk α</span>
-              <span className="text-[9px] font-label-sm uppercase tracking-wider text-secondary px-1 rounded bg-secondary-container/20 self-end">
-                QUANT LAB
-              </span>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-surface-container-high ring-1 ring-primary/40 flex items-center justify-center overflow-hidden">
-              <span className="material-symbols-outlined text-primary text-[20px]">account_circle</span>
-            </div>
+            {isStockDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setIsStockDropdownOpen(false)}
+                />
+                <div className="absolute right-0 mt-1.5 w-56 rounded-lg bg-[#161b22] border border-[#30363d] shadow-xl py-1 z-50">
+                  <div className="px-3 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider border-b border-[#21262d]">
+                    Select Stock
+                  </div>
+                  {AVAILABLE_STOCKS.map((s) => (
+                    <button
+                      key={s.symbol}
+                      onClick={() => {
+                        onSelectStock(s.symbol);
+                        setIsStockDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                        activeStock === s.symbol
+                          ? 'bg-[#1f2937] text-primary font-bold'
+                          : 'text-gray-300 hover:bg-[#21262d]'
+                      }`}
+                    >
+                      <span className="font-semibold">{s.symbol}</span>
+                      <span className="text-[10px] text-gray-500">{s.exchange}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Mobile Page Navigation Bar */}
-      <div className="lg:hidden flex items-center justify-around bg-surface-container border-t border-outline-variant/20 py-1.5 px-2 overflow-x-auto">
+      {/* Mobile Navigation Bar */}
+      <div className="md:hidden flex items-center justify-around bg-[#0d1117] border-t border-[#21262d] py-2 px-2 overflow-x-auto">
         {navItems.map((item) => {
           const isActive = activePage === item.id;
           return (
             <button
               key={item.id}
               onClick={() => setActivePage(item.id)}
-              className={`px-3 py-1 rounded text-label-sm font-label-sm whitespace-nowrap transition-colors ${
+              className={`px-3 py-1 rounded text-xs font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 ${
                 isActive
-                  ? 'bg-primary-container text-on-primary-container font-bold'
-                  : 'text-on-surface-variant hover:text-on-surface'
+                  ? 'bg-[#1f2937] text-white font-bold border border-[#374151]'
+                  : 'text-gray-400 hover:text-gray-200'
               }`}
             >
-              {item.label}
+              <span className="material-symbols-outlined text-[15px]">{item.icon}</span>
+              <span>{item.label}</span>
             </button>
           );
         })}

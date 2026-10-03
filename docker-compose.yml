@@ -14,6 +14,11 @@ services:
       - ./backend/data:/app/backend/data
       - ./backend/saved_models:/app/backend/saved_models
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   frontend:
     build:

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { STOCKS_DATA } from '../data/mockData';
+import { STOCKS_DATA, AVAILABLE_STOCKS } from '../data/mockData';
 
 export default function CommandPalette({ isOpen, onClose, onSelectStock, onNavigate }) {
   const [query, setQuery] = useState('');
@@ -23,38 +23,36 @@ export default function CommandPalette({ isOpen, onClose, onSelectStock, onNavig
   const stockList = Object.values(STOCKS_DATA).filter(
     (s) =>
       s.symbol.toLowerCase().includes(query.toLowerCase()) ||
-      s.name.toLowerCase().includes(query.toLowerCase()) ||
-      s.sector.toLowerCase().includes(query.toLowerCase())
+      s.name.toLowerCase().includes(query.toLowerCase())
   );
 
   const quickPages = [
-    { id: 'landing', label: 'Landing Page & Overview', icon: 'home' },
-    { id: 'dashboard', label: 'Stock Analysis Dashboard (Live Signals)', icon: 'candlestick_chart' },
-    { id: 'predictions', label: 'AI Predictions & Probability Cones', icon: 'trending_up' },
-    { id: 'models', label: 'Model Benchmark & Comparison (LR, ARIMA, LSTM)', icon: 'neurology' },
-    { id: 'methodology', label: 'Research Paper & Architecture Specs', icon: 'schema' },
+    { id: 'dashboard', label: 'Dashboard — Stock Price & ML Predictions', icon: 'dashboard' },
+    { id: 'predictions', label: 'Predictions — Multi-Horizon Forecasting', icon: 'trending_up' },
+    { id: 'models', label: 'Model Comparison — Linear Reg vs ARIMA vs LSTM', icon: 'compare_arrows' },
+    { id: 'methodology', label: 'Methodology — Pipeline & Algorithms', icon: 'school' },
   ].filter((p) => p.label.toLowerCase().includes(query.toLowerCase()));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/75 backdrop-blur-xs">
       <div 
-        className="w-full max-w-2xl bg-surface-container rounded-2xl shadow-2xl border border-outline-variant/40 overflow-hidden"
+        className="w-full max-w-2xl bg-[#161b22] rounded-xl shadow-2xl border border-[#30363d] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input Box */}
-        <div className="p-4 border-b border-outline-variant/30 flex items-center gap-3 bg-surface-container-low">
-          <span className="material-symbols-outlined text-primary text-[24px]">search</span>
+        <div className="p-4 border-b border-[#21262d] flex items-center gap-3 bg-[#0d1117]">
+          <span className="material-symbols-outlined text-primary text-[22px]">search</span>
           <input
             autoFocus
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search equities, ML models, horizons, or documentation..."
-            className="flex-1 bg-transparent text-on-surface placeholder:text-outline text-body-lg font-body-lg focus:outline-none"
+            placeholder="Search stock ticker (RELIANCE, TCS, INFY) or page..."
+            className="flex-1 bg-transparent text-white placeholder:text-gray-500 text-sm focus:outline-none"
           />
           <button 
             onClick={() => onClose(false)}
-            className="px-2 py-1 rounded bg-surface-container text-outline hover:text-on-surface text-label-sm font-label-sm"
+            className="px-2 py-1 rounded bg-[#161b22] text-gray-400 hover:text-white text-xs border border-[#30363d] cursor-pointer"
           >
             ESC
           </button>
@@ -65,8 +63,8 @@ export default function CommandPalette({ isOpen, onClose, onSelectStock, onNavig
           {/* Equities Section */}
           {stockList.length > 0 && (
             <div>
-              <div className="px-2 py-1 text-[11px] font-label-sm font-semibold tracking-wider text-outline uppercase">
-                Active Equities & Live Tickers
+              <div className="px-2 py-1 text-[11px] font-bold tracking-wider text-gray-400 uppercase">
+                Available Stocks
               </div>
               <div className="space-y-1 mt-1">
                 {stockList.map((s) => (
@@ -77,25 +75,25 @@ export default function CommandPalette({ isOpen, onClose, onSelectStock, onNavig
                       onNavigate('dashboard');
                       onClose(false);
                     }}
-                    className="w-full flex items-center justify-between p-2.5 rounded-lg hover:bg-surface-container-high transition-colors text-left group"
+                    className="w-full flex items-center justify-between p-2.5 rounded-lg hover:bg-[#1f2937] transition-colors text-left group cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded bg-surface-container-highest flex items-center justify-center font-bold text-primary text-sm group-hover:bg-primary-container group-hover:text-on-primary-container transition-colors">
+                      <div className="w-8 h-8 rounded bg-[#0d1117] border border-[#30363d] flex items-center justify-center font-bold text-primary text-sm">
                         {s.symbol[0]}
                       </div>
                       <div>
-                        <div className="font-bold text-on-surface text-sm flex items-center gap-2">
+                        <div className="font-bold text-white text-sm flex items-center gap-2">
                           {s.symbol}
-                          <span className="text-[11px] font-normal text-outline">{s.name}</span>
+                          <span className="text-xs font-normal text-gray-400">{s.name}</span>
                         </div>
-                        <div className="text-[11px] text-on-surface-variant">{s.sector}</div>
+                        <div className="text-[11px] text-gray-500">{s.exchange} • {s.currency}</div>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-metric-val font-semibold text-on-surface tabular-nums">
-                        ₹{s.price.toFixed(2)}
+                      <div className="font-semibold text-white font-mono">
+                        {s.currencySymbol}{s.price.toFixed(2)}
                       </div>
-                      <div className={`text-label-sm font-metric-val tabular-nums ${s.isPositive ? 'text-tertiary' : 'text-error'}`}>
+                      <div className={`text-xs font-semibold font-mono ${s.isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
                         {s.isPositive ? '+' : ''}{s.changePercent}%
                       </div>
                     </div>
@@ -108,8 +106,8 @@ export default function CommandPalette({ isOpen, onClose, onSelectStock, onNavig
           {/* Quick Pages Navigation */}
           {quickPages.length > 0 && (
             <div>
-              <div className="px-2 py-1 text-[11px] font-label-sm font-semibold tracking-wider text-outline uppercase">
-                Platform Workspaces & Views
+              <div className="px-2 py-1 text-[11px] font-bold tracking-wider text-gray-400 uppercase">
+                Navigation Views
               </div>
               <div className="space-y-1 mt-1">
                 {quickPages.map((p) => (
@@ -119,10 +117,10 @@ export default function CommandPalette({ isOpen, onClose, onSelectStock, onNavig
                       onNavigate(p.id);
                       onClose(false);
                     }}
-                    className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-surface-container-high transition-colors text-left"
+                    className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-[#1f2937] transition-colors text-left cursor-pointer"
                   >
-                    <span className="material-symbols-outlined text-secondary text-[20px]">{p.icon}</span>
-                    <span className="text-sm font-medium text-on-surface">{p.label}</span>
+                    <span className="material-symbols-outlined text-primary text-[20px]">{p.icon}</span>
+                    <span className="text-xs font-semibold text-gray-200">{p.label}</span>
                   </button>
                 ))}
               </div>
@@ -130,16 +128,16 @@ export default function CommandPalette({ isOpen, onClose, onSelectStock, onNavig
           )}
 
           {stockList.length === 0 && quickPages.length === 0 && (
-            <div className="py-8 text-center text-on-surface-variant text-sm">
-              No matching ticker or view found for "{query}"
+            <div className="py-8 text-center text-gray-400 text-xs">
+              No matching stock or view found for "{query}"
             </div>
           )}
         </div>
 
         {/* Footer info */}
-        <div className="px-4 py-2 bg-surface-container-low border-t border-outline-variant/30 flex items-center justify-between text-[11px] text-outline">
-          <span>Navigate with <strong>↑</strong> <strong>↓</strong> and <strong>Enter</strong></span>
-          <span className="text-tertiary">● NSE Live Streaming Feed Connected</span>
+        <div className="px-4 py-2 bg-[#0d1117] border-t border-[#21262d] flex items-center justify-between text-[11px] text-gray-400">
+          <span>Press <strong>ESC</strong> to close</span>
+          <span>StockSense AI Project</span>
         </div>
       </div>
     </div>

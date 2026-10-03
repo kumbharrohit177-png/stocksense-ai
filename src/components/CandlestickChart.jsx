@@ -1,66 +1,60 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 
-export default function CandlestickChart({ stock }) {
-  const [timeframe, setTimeframe] = useState('1Y');
+export default function CandlestickChart({ stockSymbol = 'RELIANCE', defaultTimeframe = '1Y' }) {
+  const [timeframe, setTimeframe] = useState(defaultTimeframe);
   const [showMA7, setShowMA7] = useState(true);
   const [showMA21, setShowMA21] = useState(true);
-  const [showMA50, setShowMA50] = useState(true);
-  const [chartType, setChartType] = useState('Candles');
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [candles, setCandles] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const timeframes = ['1D', '1W', '1M', '3M', '6M', '1Y', '5Y'];
-  const chartTypes = [
-    { id: 'Candles', icon: 'candlestick_chart' },
-    { id: 'Line', icon: 'show_chart' },
-    { id: 'Heikin', icon: 'bar_chart' },
-  ];
+  const timeframes = ['1M', '3M', '6M', '1Y'];
 
-  // Fetch real historical candles from backend API
+  // Fetch real historical candles from backend API or build fallback
   useEffect(() => {
     let isMounted = true;
-    const symbol = stock?.symbol || 'RELIANCE.NS';
-
     const fetchHistory = async () => {
       setIsLoading(true);
       try {
-        const res = await api.getStockHistory(symbol, timeframe);
+        const res = await api.getStockHistory(stockSymbol, timeframe);
         if (isMounted && res && res.data && res.data.length > 0) {
-          // Format candles
           const formatted = res.data.map(d => ({
             date: d.date,
             full_date: d.full_date,
-            o: d.open,
-            h: d.high,
-            l: d.low,
-            c: d.close,
-            vol: d.volume ? Number((d.volume / 100000).toFixed(1)) : 5.0,
+            open: d.open,
+            high: d.high,
+            low: d.low,
+            close: d.close,
+            volume: d.volume ? Number((d.volume / 100000).toFixed(1)) : 5.0,
             ma7: d.ma7,
             ma21: d.ma21,
-            ma50: d.ma50,
             isUp: d.close >= d.open
           }));
           setCandles(formatted);
         }
       } catch (err) {
-        // Generate responsive procedural candles if backend momentarily offline
-        const basePrice = stock ? stock.price : 2845.60;
-        const synth = Array.from({ length: 28 }, (_, i) => {
-          const rand = Math.sin(i * 0.4) * 60 + (i * 4);
-          const o = basePrice - 120 + rand;
-          const c = o + (Math.sin(i) > 0 ? 12 : -10);
+        // Fallback procedural candle generator
+        const basePrice = stockSymbol === 'TCS' ? 3980.10 : stockSymbol === 'INFY' ? 1560.30 : stockSymbol === 'HDFCBANK' ? 1440.00 : stockSymbol === 'TATAMOTORS' ? 980.50 : 2845.60;
+        const count = timeframe === '1M' ? 22 : timeframe === '3M' ? 45 : timeframe === '6M' ? 80 : 120;
+        
+        let p = basePrice * 0.88;
+        const synth = Array.from({ length: count }, (_, i) => {
+          const delta = (Math.sin(i * 0.3) * 12) + (Math.random() * 16 - 7);
+          p = Math.max(10, p + delta);
+          const o = p;
+          const c = o + (Math.random() * 20 - 9);
+          const h = Math.max(o, c) + Math.random() * 8;
+          const l = Math.min(o, c) - Math.random() * 8;
           return {
-            date: `D-${28 - i}`,
-            o: Number(o.toFixed(2)),
-            h: Number((Math.max(o, c) + 8).toFixed(2)),
-            l: Number((Math.min(o, c) - 8).toFixed(2)),
-            c: Number(c.toFixed(2)),
-            vol: Number((6 + Math.sin(i * 2) * 3).toFixed(1)),
-            ma7: Number((o + 5).toFixed(2)),
-            ma21: Number((o - 10).toFixed(2)),
-            ma50: Number((o - 25).toFixed(2)),
+            date: `D-${count - i}`,
+            open: Number(o.toFixed(2)),
+            high: Number(h.toFixed(2)),
+            low: Number(l.toFixed(2)),
+            close: Number(c.toFixed(2)),
+            volume: Number((4 + Math.random() * 6).toFixed(1)),
+            ma7: Number((o * 0.99).toFixed(2)),
+            ma21: Number((o * 0.97).toFixed(2)),
             isUp: c >= o
           };
         });
@@ -72,359 +66,268 @@ export default function CandlestickChart({ stock }) {
 
     fetchHistory();
     return () => { isMounted = false; };
-  }, [stock?.symbol, timeframe]);
+  }, [stockSymbol, timeframe]);
 
   const activeCandle = candles.length > 0 
     ? (hoveredIndex !== null && candles[hoveredIndex] ? candles[hoveredIndex] : candles[candles.length - 1]) 
-    : { date: 'Now', o: 0, h: 0, l: 0, c: 0, vol: 0, isUp: true };
+    : { date: 'Latest', open: 0, high: 0, low: 0, close: 0, volume: 0, isUp: true };
 
-  // Calculate dynamic scales for SVG rendering
-  const minPrice = candles.length > 0 ? Math.min(...candles.map(c => c.l)) * 0.995 : 100;
-  const maxPrice = candles.length > 0 ? Math.max(...candles.map(c => c.h)) * 1.005 : 200;
+  // Dynamic SVG scaling
+  const minPrice = candles.length > 0 ? Math.min(...candles.map(c => c.low)) * 0.995 : 100;
+  const maxPrice = candles.length > 0 ? Math.max(...candles.map(c => c.high)) * 1.005 : 200;
   const priceRange = maxPrice - minPrice || 1;
-  const maxVol = candles.length > 0 ? Math.max(...candles.map(c => c.vol)) : 10;
+  const maxVol = candles.length > 0 ? Math.max(...candles.map(c => c.volume)) : 10;
 
-  const chartHeight = 240;
-  const volumeHeight = 50;
-  const chartWidth = 980;
+  const chartHeight = 280;
+  const volumeHeight = 55;
+  const chartWidth = 1000;
   const candleSpacing = candles.length > 0 ? chartWidth / candles.length : 20;
 
-  const getY = (val) => chartHeight - ((val - minPrice) / priceRange) * (chartHeight - 30) - 15;
+  const getY = (val) => chartHeight - ((val - minPrice) / priceRange) * (chartHeight - 40) - 20;
 
   return (
-    <div className="bg-surface-container-low p-space-md rounded-xl shadow-md flex flex-col gap-space-sm border border-outline-variant/20">
-      {/* 1. Chart Controls & Overlays HUD */}
-      <div className="flex flex-wrap items-center justify-between gap-space-sm pb-space-xs">
-        {/* Timeframe Selectors */}
-        <div className="flex items-center bg-surface-container-lowest p-0.5 rounded border border-outline-variant/30">
-          {timeframes.map((tf) => (
-            <button
-              key={tf}
-              onClick={() => setTimeframe(tf)}
-              className={`px-2.5 py-1 text-label-sm font-label-sm rounded transition-all cursor-pointer ${
-                timeframe === tf
-                  ? 'bg-surface-container-high text-primary font-bold shadow-sm'
-                  : 'text-on-surface-variant hover:text-on-surface'
-              }`}
-            >
-              {tf}
-            </button>
-          ))}
+    <div className="bg-[#161b22] p-5 rounded-xl border border-[#30363d] shadow-sm flex flex-col gap-4">
+      
+      {/* 1. Header & Controls Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-[#21262d]">
+        
+        {/* Title & Active Candle Hover Tooltip */}
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary text-[20px]">candlestick_chart</span>
+            <span className="text-sm font-bold text-white">Historical Stock Price</span>
+          </div>
+
+          {activeCandle && (
+            <div className="flex items-center gap-3 text-xs bg-[#0d1117] px-3 py-1 rounded-md border border-[#30363d]">
+              <span className="text-gray-400 font-medium">{activeCandle.full_date || activeCandle.date}:</span>
+              <span className="text-gray-300">O: <strong className="text-white font-mono">{activeCandle.open}</strong></span>
+              <span className="text-gray-300">H: <strong className="text-emerald-400 font-mono">{activeCandle.high}</strong></span>
+              <span className="text-gray-300">L: <strong className="text-rose-400 font-mono">{activeCandle.low}</strong></span>
+              <span className="text-gray-300">C: <strong className={activeCandle.isUp ? 'text-emerald-400 font-mono' : 'text-rose-400 font-mono'}>{activeCandle.close}</strong></span>
+              <span className="text-gray-400">Vol: <strong className="text-gray-200 font-mono">{activeCandle.volume}M</strong></span>
+            </div>
+          )}
         </div>
 
-        {/* Overlays & Chart Type Selection */}
-        <div className="flex flex-wrap items-center gap-space-sm">
-          <div className="flex items-center gap-space-xs">
+        {/* Controls: Timeframe and Moving Averages */}
+        <div className="flex items-center gap-3">
+          
+          {/* Moving Average Toggles */}
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setShowMA7(!showMA7)}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded text-label-sm font-label-sm border transition-colors cursor-pointer ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold border transition-colors cursor-pointer ${
                 showMA7
-                  ? 'bg-surface-container-high border-amber-400/40 text-on-surface font-semibold'
-                  : 'bg-surface-container border-transparent text-outline hover:text-on-surface'
+                  ? 'bg-amber-500/10 text-amber-300 border-amber-500/40'
+                  : 'bg-[#0d1117] text-gray-500 border-[#30363d]'
               }`}
             >
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+              <span className="w-2 h-2 rounded-full bg-amber-400"></span>
               <span>MA 7</span>
             </button>
+
             <button
               onClick={() => setShowMA21(!showMA21)}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded text-label-sm font-label-sm border transition-colors cursor-pointer ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold border transition-colors cursor-pointer ${
                 showMA21
-                  ? 'bg-surface-container-high border-purple-400/40 text-on-surface font-semibold'
-                  : 'bg-surface-container border-transparent text-outline hover:text-on-surface'
+                  ? 'bg-sky-500/10 text-sky-300 border-sky-500/40'
+                  : 'bg-[#0d1117] text-gray-500 border-[#30363d]'
               }`}
             >
-              <span className="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+              <span className="w-2 h-2 rounded-full bg-sky-400"></span>
               <span>MA 21</span>
-            </button>
-            <button
-              onClick={() => setShowMA50(!showMA50)}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded text-label-sm font-label-sm border transition-colors cursor-pointer ${
-                showMA50
-                  ? 'bg-surface-container-high border-cyan-400/40 text-on-surface font-semibold'
-                  : 'bg-surface-container border-transparent text-outline hover:text-on-surface'
-              }`}
-            >
-              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
-              <span>MA 50</span>
             </button>
           </div>
 
-          <div className="flex items-center bg-surface-container-lowest p-0.5 rounded border border-outline-variant/30">
-            {chartTypes.map((ct) => (
+          {/* Timeframe Selector: [ 1M ] [ 3M ] [ 6M ] [ 1Y ] */}
+          <div className="flex items-center bg-[#0d1117] p-1 rounded-lg border border-[#30363d]">
+            {timeframes.map((tf) => (
               <button
-                key={ct.id}
-                onClick={() => setChartType(ct.id)}
-                className={`p-1.5 rounded transition-all cursor-pointer ${
-                  chartType === ct.id
-                    ? 'bg-surface-container-high text-primary'
-                    : 'text-outline hover:text-on-surface'
+                key={tf}
+                onClick={() => setTimeframe(tf)}
+                className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                  timeframe === tf
+                    ? 'bg-[#1f2937] text-white shadow-sm border border-[#374151]'
+                    : 'text-gray-400 hover:text-white'
                 }`}
-                title={ct.id}
               >
-                <span className="material-symbols-outlined text-[16px] leading-none">{ct.icon}</span>
+                {tf}
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      {/* 2. OHLCV Real-time Crosshair HUD Values */}
-      <div className="flex flex-wrap items-center justify-between text-body-sm font-body-sm bg-surface-container-lowest px-space-md py-1.5 rounded border border-outline-variant/20">
-        <div className="flex flex-wrap items-center gap-x-space-md gap-y-1">
-          <div className="flex items-center gap-1">
-            <span className="text-outline text-label-sm font-label-sm">DATE:</span>
-            <span className="font-metric-val text-metric-val text-on-surface font-bold">{activeCandle.date}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-outline text-label-sm font-label-sm">OPEN:</span>
-            <span className="font-metric-val text-metric-val text-on-surface tabular-nums">₹{activeCandle.o?.toFixed(2)}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-outline text-label-sm font-label-sm">HIGH:</span>
-            <span className="font-metric-val text-metric-val text-tertiary tabular-nums font-semibold">₹{activeCandle.h?.toFixed(2)}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-outline text-label-sm font-label-sm">LOW:</span>
-            <span className="font-metric-val text-metric-val text-error tabular-nums font-semibold">₹{activeCandle.l?.toFixed(2)}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-outline text-label-sm font-label-sm">CLOSE:</span>
-            <span className={`font-metric-val text-metric-val tabular-nums font-bold ${activeCandle.isUp ? 'text-tertiary' : 'text-error'}`}>
-              ₹{activeCandle.c?.toFixed(2)}
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-outline text-label-sm font-label-sm">VOL:</span>
-            <span className="font-metric-val text-metric-val text-secondary tabular-nums">{activeCandle.vol}M</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-space-sm text-label-sm font-label-sm text-outline">
-          {showMA7 && activeCandle.ma7 && (
-            <span className="text-amber-400 tabular-nums">MA7: ₹{activeCandle.ma7.toFixed(2)}</span>
-          )}
-          {showMA21 && activeCandle.ma21 && (
-            <span className="text-purple-400 tabular-nums">MA21: ₹{activeCandle.ma21.toFixed(2)}</span>
-          )}
-          {showMA50 && activeCandle.ma50 && (
-            <span className="text-cyan-400 tabular-nums">MA50: ₹{activeCandle.ma50.toFixed(2)}</span>
-          )}
-        </div>
-      </div>
-
-      {/* 3. Interactive SVG Candlestick & Volume Canvas */}
-      <div className="w-full bg-surface-container-lowest rounded-lg p-space-sm relative select-none border border-outline-variant/30 overflow-hidden">
+      {/* 2. Main SVG Chart Canvas */}
+      <div className="relative w-full h-[360px] bg-[#0d1117] rounded-lg border border-[#21262d] overflow-hidden">
         {isLoading && (
-          <div className="absolute inset-0 bg-surface-container-lowest/70 backdrop-blur-xs flex items-center justify-center z-20">
-            <div className="flex items-center gap-2 text-primary font-label-md">
-              <span className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></span>
-              <span>Loading Historical Candles...</span>
+          <div className="absolute inset-0 bg-[#0d1117]/60 backdrop-blur-xs flex items-center justify-center z-20">
+            <div className="flex items-center gap-2 text-xs text-primary font-semibold">
+              <span className="material-symbols-outlined text-[18px] animate-spin">refresh</span>
+              <span>Loading Historical Data...</span>
             </div>
           </div>
         )}
 
         <svg
-          className="w-full h-auto cursor-crosshair drop-shadow-md"
-          viewBox={`0 0 ${chartWidth + 60} ${chartHeight + volumeHeight + 20}`}
+          className="w-full h-full cursor-crosshair select-none"
+          viewBox={`0 0 ${chartWidth} ${chartHeight + volumeHeight + 20}`}
           preserveAspectRatio="none"
+          onMouseLeave={() => setHoveredIndex(null)}
         >
-          {/* Horizontal Grid Lines */}
-          {[0.2, 0.4, 0.6, 0.8].map((ratio, idx) => {
-            const priceVal = minPrice + priceRange * (1 - ratio);
-            const y = chartHeight * ratio;
+          {/* Price Grid Lines */}
+          <g opacity="0.15" stroke="#9ca3af" strokeDasharray="3 3">
+            <line x1="0" y1="30" x2={chartWidth} y2="30" />
+            <line x1="0" y1={chartHeight / 2} x2={chartWidth} y2={chartHeight / 2} />
+            <line x1="0" y1={chartHeight - 30} x2={chartWidth} y2={chartHeight - 30} />
+            <line x1="0" y1={chartHeight + 10} x2={chartWidth} y2={chartHeight + 10} stroke="#374151" strokeDasharray="none" />
+          </g>
+
+          {/* Volume Bars at the Bottom */}
+          {candles.map((c, i) => {
+            const x = i * candleSpacing + candleSpacing / 2;
+            const barW = Math.max(2, candleSpacing * 0.65);
+            const vHeight = (c.volume / (maxVol || 1)) * (volumeHeight - 10);
+            const vY = chartHeight + volumeHeight + 10 - vHeight;
+
             return (
-              <g key={idx}>
-                <line
-                  x1="0"
-                  x2={chartWidth}
-                  y1={y}
-                  y2={y}
-                  stroke="#32353d"
-                  strokeWidth="0.8"
-                  strokeDasharray="4,4"
-                  opacity="0.4"
-                />
-                <text
-                  x={chartWidth + 8}
-                  y={y + 4}
-                  fill="#908fa0"
-                  fontSize="10"
-                  fontFamily="Inter"
-                  className="tabular-nums"
-                >
-                  ₹{priceVal.toFixed(1)}
-                </text>
-              </g>
+              <rect
+                key={`vol-${i}`}
+                x={x - barW / 2}
+                y={vY}
+                width={barW}
+                height={vHeight}
+                fill={c.isUp ? '#10b981' : '#f43f5e'}
+                opacity={hoveredIndex === i ? 0.8 : 0.25}
+              />
             );
           })}
 
-          {/* Volume Baseline Grid */}
-          <line
-            x1="0"
-            x2={chartWidth}
-            y1={chartHeight}
-            y2={chartHeight}
-            stroke="#464554"
-            strokeWidth="1"
-            opacity="0.6"
-          />
+          {/* Candlesticks (Wick + Body) */}
+          {candles.map((c, i) => {
+            const x = i * candleSpacing + candleSpacing / 2;
+            const barW = Math.max(3, candleSpacing * 0.65);
+            const yOpen = getY(c.open);
+            const yClose = getY(c.close);
+            const yHigh = getY(c.high);
+            const yLow = getY(c.low);
+            const isUp = c.isUp;
+            const isHovered = hoveredIndex === i;
 
-          {/* Moving Average Polyline Paths */}
-          {showMA7 && candles.length > 1 && (
-            <polyline
-              fill="none"
-              stroke="#fbbf24"
-              strokeWidth="1.8"
-              opacity="0.85"
-              points={candles
-                .map((c, i) => {
-                  const x = i * candleSpacing + candleSpacing / 2;
-                  const val = c.ma7 || c.c;
-                  return `${x},${getY(val)}`;
-                })
-                .join(' ')}
-            />
-          )}
-
-          {showMA21 && candles.length > 1 && (
-            <polyline
-              fill="none"
-              stroke="#c084fc"
-              strokeWidth="1.8"
-              opacity="0.85"
-              points={candles
-                .map((c, i) => {
-                  const x = i * candleSpacing + candleSpacing / 2;
-                  const val = c.ma21 || c.c;
-                  return `${x},${getY(val)}`;
-                })
-                .join(' ')}
-            />
-          )}
-
-          {showMA50 && candles.length > 1 && (
-            <polyline
-              fill="none"
-              stroke="#22d3ee"
-              strokeWidth="1.8"
-              opacity="0.85"
-              points={candles
-                .map((c, i) => {
-                  const x = i * candleSpacing + candleSpacing / 2;
-                  const val = c.ma50 || c.c;
-                  return `${x},${getY(val)}`;
-                })
-                .join(' ')}
-            />
-          )}
-
-          {/* Candlesticks and Volume Bars */}
-          {candles.map((candle, idx) => {
-            const xCenter = idx * candleSpacing + candleSpacing / 2;
-            const candleWidth = Math.max(3, candleSpacing * 0.65);
-            const yOpen = getY(candle.o);
-            const yClose = getY(candle.c);
-            const yHigh = getY(candle.h);
-            const yLow = getY(candle.l);
-
-            const candleTop = Math.min(yOpen, yClose);
-            const candleHeight = Math.max(2, Math.abs(yClose - yOpen));
-
-            const isUp = candle.isUp;
-            const candleColor = isUp ? '#4edea3' : '#ffb4ab';
-
-            // Volume bar calculation
-            const vHeight = (candle.vol / (maxVol || 1)) * (volumeHeight - 10);
-            const vY = chartHeight + volumeHeight - vHeight;
+            const rectY = Math.min(yOpen, yClose);
+            const rectHeight = Math.max(2, Math.abs(yClose - yOpen));
+            const color = isUp ? '#10b981' : '#f43f5e';
 
             return (
               <g
-                key={idx}
-                onMouseEnter={() => setHoveredIndex(idx)}
-                onMouseLeave={() => setHoveredIndex(null)}
-                className="transition-opacity hover:opacity-100"
+                key={`candle-${i}`}
+                onMouseEnter={() => setHoveredIndex(i)}
+                className="transition-opacity"
               >
-                {/* Volume Histogram Bar */}
-                <rect
-                  x={xCenter - candleWidth / 2}
-                  y={vY}
-                  width={candleWidth}
-                  height={vHeight}
-                  fill={candleColor}
-                  opacity={hoveredIndex === idx ? 0.8 : 0.35}
-                  rx="1"
+                {/* Upper & Lower Wicks */}
+                <line
+                  x1={x}
+                  y1={yHigh}
+                  x2={x}
+                  y2={yLow}
+                  stroke={color}
+                  strokeWidth={isHovered ? 2 : 1.2}
                 />
 
-                {chartType === 'Line' ? (
-                  // Line Mode Point
-                  <circle
-                    cx={xCenter}
-                    cy={yClose}
-                    r={hoveredIndex === idx ? 4 : 2}
-                    fill="#7bd0ff"
-                  />
-                ) : (
-                  // Candlestick Mode
-                  <>
-                    {/* Wick Line (High to Low) */}
-                    <line
-                      x1={xCenter}
-                      x2={xCenter}
-                      y1={yHigh}
-                      y2={yLow}
-                      stroke={candleColor}
-                      strokeWidth="1.2"
-                    />
-
-                    {/* Real Body Rect */}
-                    <rect
-                      x={xCenter - candleWidth / 2}
-                      y={candleTop}
-                      width={candleWidth}
-                      height={candleHeight}
-                      fill={candleColor}
-                      rx="1"
-                    />
-                  </>
-                )}
-
-                {/* Hover vertical crosshair beam */}
-                {hoveredIndex === idx && (
-                  <line
-                    x1={xCenter}
-                    x2={xCenter}
-                    y1="0"
-                    y2={chartHeight + volumeHeight}
-                    stroke="#c0c1ff"
-                    strokeWidth="1"
-                    strokeDasharray="3,3"
-                    opacity="0.8"
-                  />
-                )}
+                {/* Candle Body */}
+                <rect
+                  x={x - barW / 2}
+                  y={rectY}
+                  width={barW}
+                  height={rectHeight}
+                  fill={color}
+                  rx="1"
+                  stroke={isHovered ? '#ffffff' : color}
+                  strokeWidth={isHovered ? 1.5 : 0.5}
+                />
               </g>
             );
           })}
 
-          {/* Time axis label ticks */}
-          {candles.filter((_, i) => i % Math.max(1, Math.floor(candles.length / 7)) === 0).map((c, i) => {
-            const idx = candles.indexOf(c);
-            const x = idx * candleSpacing + candleSpacing / 2;
-            return (
-              <text
-                key={i}
-                x={x}
-                y={chartHeight + volumeHeight + 15}
-                fill="#908fa0"
-                fontSize="10"
-                fontFamily="Inter"
-                textAnchor="middle"
-              >
-                {c.date}
-              </text>
-            );
-          })}
+          {/* MA 7 Overlay Curve */}
+          {showMA7 && candles.length > 7 && (
+            <path
+              d={candles
+                .map((c, i) => {
+                  const x = i * candleSpacing + candleSpacing / 2;
+                  const y = getY(c.ma7 || c.close);
+                  return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+                })
+                .join(' ')}
+              fill="none"
+              stroke="#fbbf24"
+              strokeWidth="1.8"
+              opacity="0.9"
+            />
+          )}
+
+          {/* MA 21 Overlay Curve */}
+          {showMA21 && candles.length > 21 && (
+            <path
+              d={candles
+                .map((c, i) => {
+                  const x = i * candleSpacing + candleSpacing / 2;
+                  const y = getY(c.ma21 || c.close);
+                  return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+                })
+                .join(' ')}
+              fill="none"
+              stroke="#38bdf8"
+              strokeWidth="1.8"
+              opacity="0.9"
+            />
+          )}
+
+          {/* Crosshair on Hover */}
+          {hoveredIndex !== null && candles[hoveredIndex] && (
+            <g>
+              <line
+                x1={hoveredIndex * candleSpacing + candleSpacing / 2}
+                y1="0"
+                x2={hoveredIndex * candleSpacing + candleSpacing / 2}
+                y2={chartHeight + volumeHeight + 20}
+                stroke="#6366f1"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              <line
+                x1="0"
+                y1={getY(candles[hoveredIndex].close)}
+                x2={chartWidth}
+                y2={getY(candles[hoveredIndex].close)}
+                stroke="#6366f1"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+            </g>
+          )}
         </svg>
+
+        {/* Legend Overlay at Bottom Right */}
+        <div className="absolute bottom-2 right-3 flex items-center gap-3 bg-[#161b22]/90 backdrop-blur-xs px-2.5 py-1 rounded text-[11px] border border-[#30363d]">
+          <span className="flex items-center gap-1 text-emerald-400 font-medium">
+            <span className="w-2 h-2 rounded-xs bg-emerald-500"></span> Bullish
+          </span>
+          <span className="flex items-center gap-1 text-rose-400 font-medium">
+            <span className="w-2 h-2 rounded-xs bg-rose-500"></span> Bearish
+          </span>
+          {showMA7 && (
+            <span className="flex items-center gap-1 text-amber-300">
+              <span className="w-3 h-0.5 bg-amber-400"></span> MA 7
+            </span>
+          )}
+          {showMA21 && (
+            <span className="flex items-center gap-1 text-sky-300">
+              <span className="w-3 h-0.5 bg-sky-400"></span> MA 21
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
